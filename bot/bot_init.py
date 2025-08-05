@@ -3,7 +3,7 @@ from aiogram import Bot
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
-from my_models.seq2seq import vocab
+from bot.models.seq2seq import vocab
 
 from bot.config import config
 
