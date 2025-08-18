@@ -27,9 +27,12 @@ class TikTokenizer:
 
         self.vocab_size = max(self._idx2token.keys()) + 1
 
-    def encode(self, text):
+    def encode(self, text, add_special_tokens=True):
         """Преобразование текста в токены-индексы"""
-        return self.enc.encode(text)
+        ids = self.enc.encode(text)
+        if add_special_tokens:
+            ids = [self.token2idx["<s>"]] + ids + [self.token2idx["</s>"]]
+        return ids
 
     def decode(self, ids):
         """Преобразование токенов по индексу в текст"""
@@ -37,16 +40,19 @@ class TikTokenizer:
         for token_id in ids:
             if token_id in self._idx2token:
                 token = self._idx2token[token_id]
+                if token in self.special_tokens:
+                    continue
                 tokens.append(token)
             else:
                 tokens.append(self.enc.decode([token_id]))
         return "".join(tokens)
 
-    def token2idx(self, token):
+    def token_2_idx(self, token):
         """Преобразование токена в индекс"""
         return self.token2idx.get(token, self.token2idx["<unk>"])
 
-    def idx2token(self, token_id):
+    def idx_2_token(self, token_id):
         """Получение токена по его индексу"""
-        return self._idx2token.get(token_id, self._idx2token[0])
+        return self._idx2token.get(token_id, "<unk>")
+
 
