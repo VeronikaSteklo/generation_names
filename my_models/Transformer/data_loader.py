@@ -7,7 +7,7 @@ from my_models.Transformer.tokenization import TikTokenizer
 
 class TextTitleDataset(Dataset):
     def __init__(self, data_path, text_fill="text", title_fill="title", tokenizer=None, max_len=512):
-        self.data = pd.read_csv(data_path).head(500)
+        self.data = pd.read_csv(data_path).head(1000)
         self.text_fill = text_fill
         self.title_fill = title_fill
         self.tokenizer = tokenizer
@@ -31,12 +31,16 @@ class TextTitleDataset(Dataset):
         return {
             "src": torch.tensor(text_tokens, dtype=torch.long),
             "tgt": torch.tensor(title_tokens, dtype=torch.long),
+            "src_text": text,
+            "tgt_text": title
         }
 
 def collate_fn(batch, pad_id):
     """Собирает батч и паддит последовательности"""
     text_seq = [item["src"] for item in batch]
     title_seq = [item["tgt"] for item in batch]
+    src_texts = [item["src_text"] for item in batch]
+    tgt_texts = [item["tgt_text"] for item in batch]
 
     max_text_len = max(len(text) for text in text_seq)
     max_title_len = max(len(title) for title in title_seq)
@@ -52,6 +56,8 @@ def collate_fn(batch, pad_id):
     return {
         "src": text_batch,
         "tgt": title_batch,
+        "src_text": src_texts,
+        "tgt_text": tgt_texts
     }
 
 
