@@ -3,7 +3,8 @@ import tiktoken
 
 class TikTokenizer:
     """Токенизатор, основанный на токенизаторе openai"""
-    def __init__(self, model_name="gpt-4"):
+
+    def __init__(self, model_name="gpt-4.1"):
         self.enc = tiktoken.encoding_for_model(model_name)
 
         self.token2idx = {"<unk>": 0}
@@ -54,5 +55,3 @@ class TikTokenizer:
     def idx_2_token(self, token_id):
         """Получение токена по его индексу"""
         return self._idx2token.get(token_id, "<unk>")
-
-
