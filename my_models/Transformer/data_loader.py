@@ -5,7 +5,7 @@ from torch.utils.data import Dataset
 
 class TextTitleDataset(Dataset):
     def __init__(self, data_path, text_fill="text", title_fill="title", tokenizer=None, max_len=512):
-        self.data = pd.read_csv(data_path)
+        self.data = pd.read_csv(data_path).head(10000)
         print(f"Количество данных в исходном датасете: {len(self.data)}")
         self.text_fill = text_fill
         self.title_fill = title_fill
@@ -35,7 +35,7 @@ class TextTitleDataset(Dataset):
         }
 
 
-def collate_fn(batch, pad_id):
+def collate_fn(batch, pad_id, device=torch.device("cpu")):
     """Собирает батч и паддит последовательности"""
     text_seq = [item["src"] for item in batch]
     title_seq = [item["tgt"] for item in batch]
@@ -54,8 +54,8 @@ def collate_fn(batch, pad_id):
         title_batch[i, :len(seq)] = seq
 
     return {
-        "src": text_batch,
-        "tgt": title_batch,
+        "src": text_batch.to(device),
+        "tgt": title_batch.to(device),
         "src_text": src_texts,
         "tgt_text": tgt_texts
     }

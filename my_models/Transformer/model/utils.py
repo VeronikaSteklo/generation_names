@@ -6,12 +6,12 @@ from torch import nn
 
 
 def clones(module, N):
-    "Produce N identical layers."
+    """Produce N identical layers."""
     return nn.ModuleList([copy.deepcopy(module) for _ in range(N)])
 
 
 class LayerNorm(nn.Module):
-    "Construct a layernorm module (See citation for details)."
+    """Construct a layernorm module (See citation for details)."""
 
     def __init__(self, features, eps=1e-6):
         super(LayerNorm, self).__init__()
@@ -37,20 +37,21 @@ class SublayerConnection(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x, sublayer):
-        "Apply residual connection to any sublayer with the same size."
+        """Apply residual connection to any sublayer with the same size."""
         return x + self.dropout(sublayer(self.norm(x)))
 
 
 def subsequent_mask(size):
-    "Mask out subsequent positions."
+    """Mask out subsequent positions."""
     attn_shape = (1, size, size)
     subsequent_mask = torch.triu(torch.ones(attn_shape), diagonal=1).type(
         torch.uint8
     )
     return subsequent_mask == 0
 
+
 class PositionwiseFeedForward(nn.Module):
-    "Implements FFN equation."
+    """Implements FFN equation."""
 
     def __init__(self, d_model, d_ff, dropout=0.1):
         super(PositionwiseFeedForward, self).__init__()
@@ -61,6 +62,7 @@ class PositionwiseFeedForward(nn.Module):
     def forward(self, x):
         return self.w_2(self.dropout(self.w_1(x).relu()))
 
+
 class Embeddings(nn.Module):
     def __init__(self, d_model,
                  vocab):
@@ -69,16 +71,16 @@ class Embeddings(nn.Module):
         self.d_model = d_model
 
     def forward(self, x):
-        return self.lut(x) * math.sqrt(self.d_model)
+        return self.lut(x.to(self.lut.weight.device)) * math.sqrt(self.d_model)
+
 
 class PositionalEncoding(nn.Module):
-    "Implement the PE function."
+    """Implement the PE function."""
 
     def __init__(self, d_model, dropout, max_len=5000):
         super(PositionalEncoding, self).__init__()
         self.dropout = nn.Dropout(p=dropout)
 
-        # Compute the positional encodings once in log space.
         pe = torch.zeros(max_len, d_model)
         position = torch.arange(0, max_len).unsqueeze(1)
         div_term = torch.exp(
@@ -92,4 +94,3 @@ class PositionalEncoding(nn.Module):
     def forward(self, x):
         x = x + self.pe[:, : x.size(1)].requires_grad_(False)
         return self.dropout(x)
-
