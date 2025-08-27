@@ -17,10 +17,10 @@ class TikTokenizer:
             self.token2idx[tok_str] = i
 
         self.special_tokens = {
-            "<s>": self.enc.n_vocab,
-            "</s>": self.enc.n_vocab + 1,
-            "<pad>": self.enc.n_vocab + 2,
-            "<mask>": self.enc.n_vocab + 3
+            "<s>": len(self.token2idx),
+            "</s>": len(self.token2idx) + 1,
+            "<pad>": len(self.token2idx) + 2,
+            "<mask>": len(self.token2idx) + 3
         }
         self.token2idx.update(self.special_tokens)
 
