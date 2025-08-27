@@ -75,7 +75,7 @@ def make_model(
         Decoder(DecoderLayer(d_model, c(attn), c(attn), c(ff), dropout), N),
         src_embed,
         tgt_embed,
-        Generator(d_model, tokenizer.vocab_size),
+        Generator(d_model, tokenizer.vocab_size + 1),
     )
 
     for p in model.parameters():
@@ -84,40 +84,56 @@ def make_model(
     return model.to(device), tokenizer
 
 
-def train_epoch(model, tokenizer, data_loader, optimizer, device=torch.device("cpu")):
-    model.train()
+def run_epoch(
+        model, tokenizer, data_loader,
+        optimizer, device=torch.device("cpu"), label_smoothing=0.1,
+        train=True
+):
+    if train:
+        model.train()
+    else:
+        model.eval()
+
     total_loss = 0
 
-    progress_bar = tqdm(enumerate(data_loader), total=len(data_loader), desc="Training", leave=False)
+    progress_bar = tqdm(
+        enumerate(data_loader),
+        total=len(data_loader),
+        desc="Training" if train else "Validation",
+        leave=False
+    )
 
-    for batch_idx, batch in progress_bar:
-        src = batch['src'].to(device).to(device)
-        tgt = batch['tgt'].to(device).to(device)
+    context = torch.enable_grad() if train else torch.no_grad()
+    with context:
+        for batch_idx, batch in progress_bar:
+            src = batch['src'].to(device).to(device)
+            tgt = batch['tgt'].to(device).to(device)
 
-        optimizer.zero_grad()
-        tgt_input = tgt[:, :-1]
+            tgt_input = tgt[:, :-1]
 
-        tgt_mask = subsequent_mask(tgt_input.size(1)).to(device)
-        src_mask = (src != tokenizer.token_2_idx("<pad>")).unsqueeze(-2).to(device)
+            tgt_mask = subsequent_mask(tgt_input.size(1)).to(device)
+            src_mask = (src != tokenizer.token_2_idx("<pad>")).unsqueeze(-2).to(device)
 
-        out = model(src, tgt_input, src_mask, tgt_mask)
-        logits = model.generator(out)
-        logits = logits.to(device).contiguous().view(-1, logits.size(-1)).float()
+            out = model(src, tgt_input, src_mask, tgt_mask)
+            logits = model.generator(out)
+            logits = logits.to(device).contiguous().view(-1, logits.size(-1)).float()
 
-        tgt_labels = tgt[:, 1:].to(device)
-        loss = F.cross_entropy(
-            logits.reshape(-1, logits.size(-1)),
-            tgt_labels.reshape(-1),
-            ignore_index=tokenizer.token_2_idx("<pad>")
-        )
+            tgt_labels = tgt[:, 1:].to(device)
+            loss = F.cross_entropy(
+                logits.reshape(-1, logits.size(-1)),
+                tgt_labels.reshape(-1),
+                ignore_index=tokenizer.token_2_idx("<pad>"),
+                label_smoothing=label_smoothing if train else 0.0
+            )
 
-        loss.backward()
-        optimizer.step()
+            if train:
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
 
-        total_loss += loss.item()
-        avg_loss = total_loss / (batch_idx + 1)
+            total_loss += loss.item()
+            avg_loss = total_loss / (batch_idx + 1)
 
-        progress_bar.set_postfix({"avg_loss": f"{avg_loss:.4f}"})
+            progress_bar.set_postfix({"avg_loss": f"{avg_loss:.4f}"})
 
     return total_loss / len(data_loader)
-
