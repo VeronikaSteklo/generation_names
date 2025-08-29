@@ -17,7 +17,7 @@ from my_models.Transformer.model.model import make_model, run_epoch, generate_ti
 NUM_EPOCHS = 25
 PATIENCE = 2
 MIN_DELTA = 2 * 1e-2
-MODEL_PATH = "../../models/transformer.pt"
+MODEL_PATH = "../../models/transformer_all.pth"
 best_train_loss = float("inf")
 best_val_loss = float("inf")
 epochs_no_improve = 0
@@ -80,7 +80,13 @@ for epoch in range(NUM_EPOCHS):
     if best_val_loss - val_loss > MIN_DELTA:
         best_val_loss = val_loss
         epochs_no_improve = 0
-        torch.save(model.state_dict(), "../../models/transformer.pt")
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'loss': val_loss,
+            'tokenizer': tokenizer,
+        }, MODEL_PATH)
         print(f"New best model saved at epoch {epoch + 1}, train_loss = {val_loss:.4f}")
     else:
         epochs_no_improve += 1
