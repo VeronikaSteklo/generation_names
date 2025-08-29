@@ -18,7 +18,7 @@ class LitresParser:
         self.base_url = url
         self.headers = {"User-Agent": UserAgent().random}
         self.timeout = 10
-        self.filename = "/Users/veronika_steklo/PycharmProjects/generation_names/data/litres.json"
+        self.filename = "/data/temp_data/litres.json"
 
     def _get_page(self, url: str) -> Optional[BeautifulSoup]:
         """Загружает страницу и возвращает BeautifulSoup-объект."""

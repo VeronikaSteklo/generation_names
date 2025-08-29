@@ -26,7 +26,7 @@ model, tokenizer = make_model(N=2, d_model=128, d_ff=256, h=4)
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
 dataset = TextTitleDataset(
-    "../../data/all_data.csv",
+    "../../data/temp_data/all_data.csv",
     tokenizer=tokenizer,
     limit=100
 )
