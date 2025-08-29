@@ -75,7 +75,7 @@ def make_model(
         Decoder(DecoderLayer(d_model, c(attn), c(attn), c(ff), dropout), N),
         src_embed,
         tgt_embed,
-        Generator(d_model, tokenizer.vocab_size + 1),
+        Generator(d_model, tokenizer.vocab_size),
     )
 
     for p in model.parameters():
