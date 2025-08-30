@@ -25,18 +25,17 @@ epochs_no_improve = 0
 model, tokenizer = make_model(N=2, d_model=128, d_ff=256, h=4)
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
-dataset = TextTitleDataset(
-    "../../data/temp_data/all_data.csv",
+train_dataset = TextTitleDataset(
+    data_path="../../data/all_data_augmented/train_df.csv",
     tokenizer=tokenizer,
     limit=100
 )
 
-train_size = int(0.8 * len(dataset))
-val_size = len(dataset) - train_size
-train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
-
-print(f"Количество данных в тренировочном датасете: {len(train_dataset)}")
-print(f"Количество данных в тестовом датасете: {len(val_dataset)}")
+val_dataset = TextTitleDataset(
+    data_path="../../data/all_data_augmented/val_df.csv",
+    tokenizer=tokenizer,
+    limit=100
+)
 
 pad_id = tokenizer.token_2_idx("<pad>")
 
@@ -57,14 +56,17 @@ val_loader = DataLoader(
 for epoch in range(NUM_EPOCHS):
     start_time = time.time()
     train_loss = run_epoch(
-        model, tokenizer, data_loader=train_loader,
+        model=model, tokenizer=tokenizer, data_loader=train_loader,
         optimizer=optimizer, device=device
     )
 
-    val_loss = run_epoch(model, tokenizer, val_loader, device, train=False)
+    val_loss = run_epoch(model=model, tokenizer=tokenizer, data_loader=val_loader, optimizer=None, device=device, train=False)
 
     if (epoch + 1) % 5 == 0:
-        bleu, bleu1, bleu4 = evaluate_bleu(model, tokenizer, val_loader, device)
+        bleu, bleu1, bleu4 = evaluate_bleu(
+            model=model, tokenizer=tokenizer,
+            data_loader=val_loader, device=device
+        )
         epoch_time = time.time() - start_time
 
         print(f"Epoch {epoch + 1}, "
