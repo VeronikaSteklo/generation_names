@@ -2,7 +2,7 @@ import time
 
 import torch
 from torch import optim
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 
 if torch.cuda.is_available():
     device = torch.device("cuda")
@@ -57,10 +57,14 @@ for epoch in range(NUM_EPOCHS):
     start_time = time.time()
     train_loss = run_epoch(
         model=model, tokenizer=tokenizer, data_loader=train_loader,
-        optimizer=optimizer, device=device
+        optimizer=optimizer, device=device, class_weights=train_dataset.weight
     )
 
-    val_loss = run_epoch(model=model, tokenizer=tokenizer, data_loader=val_loader, optimizer=None, device=device, train=False)
+    val_loss = run_epoch(
+        model=model, tokenizer=tokenizer,
+        data_loader=val_loader, optimizer=None,
+        device=device, train=False
+    )
 
     if (epoch + 1) % 5 == 0:
         bleu, bleu1, bleu4 = evaluate_bleu(
