@@ -3,7 +3,7 @@ import torch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 from my_models.Transformer.model.model import make_model, generate_title
-from tokenization import TikTokenizer
+from my_models.Transformer.data.tokenization import TikTokenizer
 
 torch.serialization.add_safe_globals([TikTokenizer])
 

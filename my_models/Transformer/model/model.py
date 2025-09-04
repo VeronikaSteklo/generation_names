@@ -13,7 +13,7 @@ from my_models.Transformer.model.attention import MultiHeadedAttention
 from my_models.Transformer.model.decoder import Decoder, DecoderLayer
 from my_models.Transformer.model.encoder import Encoder, EncoderLayer
 from my_models.Transformer.model.utils import PositionwiseFeedForward, PositionalEncoding, Embeddings, subsequent_mask
-from my_models.Transformer.tokenization import TikTokenizer
+from my_models.Transformer.data.tokenization import TikTokenizer
 
 
 class EncoderDecoder(nn.Module):

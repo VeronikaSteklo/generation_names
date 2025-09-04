@@ -1,58 +1,42 @@
 import time
 
-import torch
 from torch import optim
 from torch.utils.data import DataLoader
-
-if torch.cuda.is_available():
-    device = torch.device("cuda")
-else:
-    device = torch.device("cpu")
-
-print(f"Используемое устройство: {device}")
-
-from my_models.Transformer.data_loader import TextTitleDataset, collate_fn
+from my_models.Transformer.data.data_loader import TextTitleDataset, collate_fn
 from my_models.Transformer.model.model import make_model, run_epoch, generate_title, evaluate_bleu
 
-NUM_EPOCHS = 25
-PATIENCE = 2
-MIN_DELTA = 2 * 1e-2
-MODEL_PATH = "../../models/transformer_all.pth"
-best_train_loss = float("inf")
+from config import *
+
+model, tokenizer = make_model(N=MODEL_N, d_model=D_MODEL, d_ff=D_FF, h=NUM_HEADS)
+optimizer = optim.Adam(model.parameters(), lr=LR)
+
 best_val_loss = float("inf")
+best_train_loss = float("inf")
 epochs_no_improve = 0
 
-model, tokenizer = make_model(N=2, d_model=128, d_ff=256, h=4)
-optimizer = optim.Adam(model.parameters(), lr=1e-3)
-
 train_dataset = TextTitleDataset(
-    data_path="../../data/all_data_augmented/train_df.csv",
+    data_path=TRAIN_CSV,
     tokenizer=tokenizer,
     limit=100
 )
 
 val_dataset = TextTitleDataset(
-    data_path="../../data/all_data_augmented/val_df.csv",
+    data_path=VAL_CSV,
     tokenizer=tokenizer,
     limit=100
 )
 
-pad_id = tokenizer.token_2_idx("<pad>")
+pad_id = tokenizer.token_2_idx(PAD_TOKEN)
 
 train_loader = DataLoader(
-    train_dataset,
-    batch_size=32,
-    shuffle=True,
+    train_dataset, batch_size=BATCH_SIZE, shuffle=True,
     collate_fn=lambda batch: collate_fn(batch, pad_id, device=device)
 )
 
 val_loader = DataLoader(
-    val_dataset,
-    batch_size=32,
-    shuffle=False,
+    val_dataset, batch_size=BATCH_SIZE, shuffle=False,
     collate_fn=lambda batch: collate_fn(batch, pad_id, device=device)
 )
-
 for epoch in range(NUM_EPOCHS):
     start_time = time.time()
     train_loss = run_epoch(
