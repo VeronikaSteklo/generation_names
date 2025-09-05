@@ -95,16 +95,3 @@ class Vocab:
 
     def __len__(self):
         return len(self.word2index)
-
-
-input_vocab = Vocab("input")
-target_vocab = Vocab("target")
-
-for title, text in train_pairs:
-    input_vocab.addText(text)
-    target_vocab.addText(title)
-
-input_vocab.build_vocab(is_text=True)
-input_vocab.save("../../data/vocabs/src_vocab.pkl")
-target_vocab.build_vocab(is_text=False)
-target_vocab.save("../../data/vocabs/trg_vocab.pkl")

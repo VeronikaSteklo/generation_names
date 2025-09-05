@@ -16,8 +16,13 @@ from config import (
     LR, WEIGHT_DECAY, LABEL_SMOOTHING, HID_DIM, ENC_EMB_DIM, DEC_EMB_DIM,
     ENC_DROPOUT, DEC_DROPOUT, N_LAYERS, PAD_IDX
 )
-from .data import Vocab, TitleDataset, collate_fn
-from .model import EncoderLSTM, Decoder, Seq2Seq
+
+from data.vocab import Vocab
+from data.dataset import TitleDataset
+from data.dataset import collate_fn
+from model.decoder import Decoder
+from model.encoder import EncoderLSTM
+from model.seq2seq import Seq2Seq
 
 
 def set_seed(seed: int = 42):

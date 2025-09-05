@@ -3,15 +3,19 @@ from __future__ import annotations
 import re
 import torch
 
-from .config import (
+from config import (
     BEST_MODEL_PATH, SRC_VOCAB_PATH, TRG_VOCAB_PATH,
     HID_DIM, ENC_EMB_DIM, DEC_EMB_DIM, ENC_DROPOUT, DEC_DROPOUT, N_LAYERS
 )
-from .data import Vocab, normalize_text
-from .model import EncoderLSTM, Decoder, Seq2Seq
+from data.vocab import Vocab
+from data.preprocess import normalize_text
+from model.decoder import Decoder
+from model.encoder import EncoderLSTM
+from model.seq2seq import Seq2Seq
 
 
-def generate_title(model: Seq2Seq, input_text: str, input_vocab: Vocab, target_vocab: Vocab, max_len: int = 50, device: str | torch.device = "cpu", temperature: float = 0.7) -> str:
+def generate_title(model: Seq2Seq, input_text: str, input_vocab: Vocab, target_vocab: Vocab, max_len: int = 50,
+                   device: str | torch.device = "cpu", temperature: float = 0.7) -> str:
     model.eval()
     tokens = re.findall(r"\w+|[.,!?;]", input_text.lower())
     src_idxs = [input_vocab.word2index.get(t, input_vocab.word2index["<unk>"]) for t in tokens]

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-DATA_CSV = "../data/data_tokenize.csv"
-SRC_VOCAB_PATH = "../data/vocabs/src_vocab.pkl"
-TRG_VOCAB_PATH = "../data/vocabs/trg_vocab.pkl"
-BEST_MODEL_PATH = "../models/best_model_seq2seq.pt"
+DATA_CSV = "../../data/data_tokenize.csv"
+SRC_VOCAB_PATH = "../../data/vocabs/src_vocab.pkl"
+TRG_VOCAB_PATH = "../../data/vocabs/trg_vocab.pkl"
+BEST_MODEL_PATH = "../../models/best_model_seq2seq.pt"
 
 MAX_VOCAB_SIZE = 30_000
 MAX_INPUT_LEN = 300
