@@ -7,8 +7,12 @@ from my_models.Transformer.model.model import make_model, run_epoch, generate_ti
 
 from config import *
 
-model, tokenizer = make_model(N=MODEL_N, d_model=D_MODEL, d_ff=D_FF, h=NUM_HEADS)
-optimizer = optim.Adam(model.parameters(), lr=LR)
+model, tokenizer = make_model(N=MODEL_N, d_model=D_MODEL, d_ff=D_FF, h=NUM_HEADS, dropout=DROPOUT, device=device)
+optimizer = optim.Adam(
+    model.parameters(),
+    lr=LR,
+    weight_decay=WEIGHT_DECAY
+)
 
 best_val_loss = float("inf")
 best_train_loss = float("inf")

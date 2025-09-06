@@ -10,6 +10,8 @@ PATIENCE = 2
 MIN_DELTA = 2e-2
 BATCH_SIZE = 32
 LR = 1e-3
+DROPOUT = 0.2
+WEIGHT_DECAY = 1e-5
 
 # ----------------- Пути-----------------
 MODEL_PATH = "../../models/transformer_all.pth"
