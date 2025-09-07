@@ -45,7 +45,7 @@ for epoch in range(NUM_EPOCHS):
     start_time = time.time()
     train_loss = run_epoch(
         model=model, tokenizer=tokenizer, data_loader=train_loader,
-        optimizer=optimizer, device=device, class_weights=train_dataset.weight
+        optimizer=optimizer, device=device
     )
 
     val_loss = run_epoch(
@@ -85,5 +85,7 @@ for epoch in range(NUM_EPOCHS):
     else:
         epochs_no_improve += 1
         print(f"Эпох без улучшений: {epochs_no_improve}")
+        if epochs_no_improve > PATIENCE:
+            break
 
 print(generate_title(model, tokenizer, "Статья о применении трансформеров для NLP"))

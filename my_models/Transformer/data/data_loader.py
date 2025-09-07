@@ -29,24 +29,6 @@ class TextTitleDataset(Dataset):
         self.max_text_len = max_text_len
         self.max_title_len = max_title_len
         self.use_clean = use_clean
-        self.weight = self.get_weight()
-
-    def get_weight(self):
-        vocab_size = self.tokenizer.vocab_size
-        token_counts = torch.zeros(vocab_size, dtype=torch.float)
-
-        for title in self.data[self.title_fill]:
-            if self.use_clean:
-                title = clean_text(str(title))
-            tokens = self.tokenizer.encode(str(title), add_special_tokens=True)
-            for t in tokens:
-                token_counts[t] += 1
-
-        weights = 1.0 / (token_counts + 1e-6)
-
-        weights = weights / weights.mean()
-
-        return weights
 
     def __len__(self):
         return len(self.data)

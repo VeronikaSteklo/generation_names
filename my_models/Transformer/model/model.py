@@ -87,7 +87,7 @@ def make_model(
 def run_epoch(
         model, tokenizer, data_loader,
         optimizer, device=torch.device("cpu"), label_smoothing=0.1,
-        train=True, class_weights=None
+        train=True
 ):
     if train:
         model.train()
@@ -122,9 +122,8 @@ def run_epoch(
             loss = F.cross_entropy(
                 logits.reshape(-1, logits.size(-1)),
                 tgt_labels.reshape(-1),
-                weight=class_weights,
                 ignore_index=tokenizer.token_2_idx("<pad>"),
-                label_smoothing=label_smoothing if train else 0.0
+                label_smoothing=label_smoothing if train else 0.0,
             )
 
             if train:
