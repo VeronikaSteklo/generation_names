@@ -6,12 +6,21 @@ print(f"Используемое устройство: {device}")
 
 # ----------------- Параметры обучения -----------------
 NUM_EPOCHS = 25
-PATIENCE = 2
-MIN_DELTA = 2e-2
+PATIENCE = 5
+MIN_DELTA = 1e-3
 BATCH_SIZE = 32
-LR = 1e-3
-DROPOUT = 0.2
-WEIGHT_DECAY = 1e-5
+LR = 5e-4
+DROPOUT = 0.3
+WEIGHT_DECAY = 1e-4
+LABEL_SMOOTHING=0.1
+
+WARMUP_EPOCHS = 1
+MAX_GRAD_NORM = 1.0
+T_0 = 4
+T_MULT = 2,
+ETA_MIN = 1e-6
+
+LIMIT=100
 
 # ----------------- Пути-----------------
 MODEL_PATH = "../../models/transformer_all.pth"

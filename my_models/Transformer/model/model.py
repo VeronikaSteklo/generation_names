@@ -86,8 +86,9 @@ def make_model(
 
 def run_epoch(
         model, tokenizer, data_loader,
-        optimizer, device=torch.device("cpu"), label_smoothing=0.1,
-        train=True
+        optimizer=None, device=torch.device("cpu"), label_smoothing=0.1,
+        train=True, scheduler=None, epoch=0, num_batches=None,
+        max_grad_norm=1.0, warmup_epochs=0, base_lr=None
 ):
     if train:
         model.train()
@@ -126,10 +127,24 @@ def run_epoch(
                 label_smoothing=label_smoothing if train else 0.0,
             )
 
-            if train:
+            if train and optimizer is not None:
                 optimizer.zero_grad()
                 loss.backward()
+
+                if max_grad_norm is not None and max_grad_norm > 0.0:
+                    nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
+
                 optimizer.step()
+
+                if scheduler is not None and num_batches is not None:
+                    if epoch < warmup_epochs and base_lr is not None:
+                        cur_step = epoch * num_batches + batch_idx + 1
+                        total_warmup_steps = max(1, warmup_epochs * num_batches)
+                        lr_scale = cur_step / float(total_warmup_steps)
+                        for pg in optimizer.param_groups:
+                            pg['lr'] = base_lr * lr_scale
+                    else:
+                        scheduler.step(epoch + batch_idx / float(num_batches))
 
             total_loss += loss.item()
             avg_loss = total_loss / (batch_idx + 1)
