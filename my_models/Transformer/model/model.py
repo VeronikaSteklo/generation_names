@@ -1,6 +1,5 @@
 import copy
 
-from nltk.translate.bleu_score import SmoothingFunction, corpus_bleu
 from tqdm import tqdm
 
 import torch
@@ -152,82 +151,3 @@ def run_epoch(
             progress_bar.set_postfix({"avg_loss": f"{avg_loss:.4f}"})
 
     return total_loss / len(data_loader)
-
-
-def evaluate_bleu(model, tokenizer, data_loader, device, mode="greedy"):
-    model.eval()
-    refs = []
-    hyps = []
-
-    with torch.no_grad():
-        for batch in data_loader:
-            src_texts = batch["src_text"]
-            tgt_titles = batch["tgt_text"]
-
-            for text, ref_title in zip(src_texts, tgt_titles):
-                gen_title = generate_title(model, tokenizer, text, device=device, mode=mode)
-
-                refs.append([ref_title.split()])
-                hyps.append(gen_title.split())
-
-    smooth_fn = SmoothingFunction().method1
-    bleu = corpus_bleu(refs, hyps, smoothing_function=smooth_fn)
-    bleu1 = corpus_bleu(refs, hyps, weights=(1, 0, 0, 0), smoothing_function=smooth_fn)
-    bleu4 = corpus_bleu(refs, hyps, weights=(0.25, 0.25, 0.25, 0.25), smoothing_function=smooth_fn)
-    return bleu, bleu1, bleu4
-
-
-def generate_title(
-        model, tokenizer, text, max_len=512, device=torch.device("cpu"),
-        mode="greedy", temperature=1.0, top_k=10
-):
-    """
-    Генерация заголовка для текста.
-    mode: "greedy", "sampling", "top-k"
-    """
-
-    model.eval()
-    pad_id = tokenizer.token_2_idx("<pad>")
-    bos_id = tokenizer.token_2_idx("<s>")
-    eos_id = tokenizer.token_2_idx("</s>")
-
-    src_ids = tokenizer.encode(text, add_special_tokens=False)[:max_len]
-    src = torch.tensor([src_ids], dtype=torch.long, device=device)
-    src_mask = (src != pad_id).unsqueeze(-2)
-
-    memory = model.encode(src, src_mask)
-
-    ys = torch.tensor([[bos_id]], dtype=torch.long, device=device)
-
-    for _ in range(max_len):
-        tgt_pad_mask = (ys != pad_id).unsqueeze(-2)
-        tgt_sub_mask = subsequent_mask(ys.size(1)).to(device)
-        tgt_mask = tgt_pad_mask & tgt_sub_mask
-
-        out = model.decode(memory, src_mask, ys, tgt_mask)
-        logits = model.generator(out[:, -1])
-
-        if mode == "greedy":
-            next_word = logits.argmax(dim=-1).item()
-
-        elif mode == "sampling":
-            prob = F.softmax(logits / temperature, dim=-1)
-            next_word = torch.multinomial(prob, num_samples=1).item()
-
-        elif mode == "top-k":
-            topk_prob, topk_idx = torch.topk(logits, top_k, dim=-1)
-            topk_prob = F.softmax(topk_prob / temperature, dim=-1)
-            next_word = topk_idx[0, torch.multinomial(topk_prob, 1)].item()
-
-        else:
-            raise ValueError("mode должен быть 'greedy', 'sampling' или 'top-k'")
-
-        ys = torch.cat([ys, torch.tensor([[next_word]], device=device)], dim=1)
-
-        if next_word == eos_id:
-            break
-
-    gen_text = tokenizer.decode(ys.squeeze().tolist())
-    gen_text_for_bleu = " ".join(gen_text.split())
-
-    return gen_text_for_bleu
