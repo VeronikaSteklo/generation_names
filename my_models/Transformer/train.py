@@ -1,3 +1,4 @@
+import math
 import time
 
 from torch import optim
@@ -91,6 +92,7 @@ for epoch in range(NUM_EPOCHS):
 
         print(f"Epoch {epoch + 1}, "
               f"train_loss = {train_loss:.4f}, val_loss = {val_loss:.4f}, "
+              f"Perplexity = {math.exp(val_loss)}, "
               f"BLEU(4) = {bleu:.4f}, BLEU1 = {bleu1:.4f}, "
               f"LR = {current_lr:.2e}, time = {epoch_time:.2f} sec")
     else:
@@ -115,7 +117,7 @@ for epoch in range(NUM_EPOCHS):
     else:
         epochs_no_improve += 1
         print(f"Эпох без улучшений: {epochs_no_improve}")
-        if epochs_no_improve > PATIENCE:
+        if epochs_no_improve >= PATIENCE:
             print(f"Сработал ранний останов. Пройдено {epoch + 1} эпох. Лучший результат: {best_val_loss:.4f}")
             break
 
