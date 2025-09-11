@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 
 from my_models.Transformer.data.data_loader import TextTitleDataset, collate_fn
+from my_models.Transformer.debug.bleu_debug import debug_bleu
 from my_models.Transformer.model.metrics import evaluate_bleu
 from my_models.Transformer.model.model import make_model, run_epoch
 
@@ -19,12 +20,12 @@ optimizer = optim.AdamW(
     lr=LR,
     weight_decay=WEIGHT_DECAY
 )
-scheduler = CosineAnnealingWarmRestarts(
-    optimizer,
-    T_0=T_0,
-    T_mult=T_MULT,
-    eta_min=ETA_MIN
-)
+# scheduler = CosineAnnealingWarmRestarts(
+#     optimizer,
+#     T_0=T_0,
+#     T_mult=T_MULT,
+#     eta_min=ETA_MIN
+# )
 
 best_val_loss = float("inf")
 best_train_loss = float("inf")
@@ -65,7 +66,7 @@ for epoch in range(NUM_EPOCHS):
         optimizer=optimizer,
         device=device,
         label_smoothing=LABEL_SMOOTHING,
-        scheduler=scheduler,
+        # scheduler=scheduler,
         epoch=epoch,
         num_batches=num_batches,
         max_grad_norm=MAX_GRAD_NORM,
@@ -84,16 +85,17 @@ for epoch in range(NUM_EPOCHS):
     current_lr = optimizer.param_groups[0]["lr"]
 
     if (epoch + 1) % 5 == 0:
-        bleu, bleu1 = evaluate_bleu(
-            model=model, tokenizer=tokenizer,
-            data_loader=val_loader, device=device
-        )
+        # bleu, bleu1 = evaluate_bleu(
+        #     model=model, tokenizer=tokenizer,
+        #     data_loader=val_loader, device=device
+        # )
+        bleu = debug_bleu(model, tokenizer, val_loader, device)
         epoch_time = time.time() - start_time
 
         print(f"Epoch {epoch + 1}, "
               f"train_loss = {train_loss:.4f}, val_loss = {val_loss:.4f}, "
               f"Perplexity = {math.exp(val_loss)}, "
-              f"BLEU(4) = {bleu:.4f}, BLEU1 = {bleu1:.4f}, "
+              f"BLEU(4) = {bleu:.4f},"  # BLEU1 = {bleu1:.4f}, "
               f"LR = {current_lr:.2e}, time = {epoch_time:.2f} sec")
     else:
         epoch_time = time.time() - start_time
@@ -108,7 +110,7 @@ for epoch in range(NUM_EPOCHS):
             'epoch': epoch,
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
-            'scheduler_state_dict': scheduler.state_dict(),
+            # 'scheduler_state_dict': scheduler.state_dict(),
             'loss': val_loss,
             'tokenizer': tokenizer,
             'epochs_no_improve': epochs_no_improve,
