@@ -1,17 +1,18 @@
-import torch
+from my_models.Transformer.config import *
+from my_models.Transformer.model.utils import generate_title
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-from my_models.Transformer.model.model import make_model, generate_title
+from my_models.Transformer.model.model import make_model
 from my_models.Transformer.data.tokenization import TikTokenizer
 
 torch.serialization.add_safe_globals([TikTokenizer])
 
-model, tokenizer = make_model(N=2, d_model=128, d_ff=256, h=4)
+model, tokenizer = make_model(N=MODEL_N, d_model=D_MODEL, d_ff=D_FF, h=NUM_HEADS)
 
 
 checkpoint = torch.load(
-    "/Users/veronika_steklo/PycharmProjects/generation_names/models/rofl.pth",
+    "/Users/veronika_steklo/PycharmProjects/generation_names/models/debug.pth",
     map_location=device,
     weights_only=False
 )
