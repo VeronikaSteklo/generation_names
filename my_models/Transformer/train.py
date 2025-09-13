@@ -84,7 +84,7 @@ for epoch in range(NUM_EPOCHS):
 
     current_lr = optimizer.param_groups[0]["lr"]
 
-    if (epoch + 1) % 5 == 0:
+    if (epoch + 1) % NUM_EPOCHS_FOR_METRICS == 0:
         # bleu, bleu1 = evaluate_bleu(
         #     model=model, tokenizer=tokenizer,
         #     data_loader=val_loader, device=device
