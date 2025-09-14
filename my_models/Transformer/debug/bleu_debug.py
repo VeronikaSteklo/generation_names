@@ -13,7 +13,6 @@ def debug_bleu(model, tokenizer, data_loader, device):
 
     model.eval()
     with torch.no_grad():
-        batch_ = 0
         for batch in data_loader:
             for text, true_title in zip(batch["src_text"], batch["tgt_text"]):
                 gen_title = generate_title(model, tokenizer, text, device=device)
@@ -29,16 +28,6 @@ def debug_bleu(model, tokenizer, data_loader, device):
 
                 if true_tokens == gen_tokens:
                     token_matches += 1
-
-                batch_ += 1
-
-                print(f"Верный заголовок: '{true_title}'")
-                print(f"Сгенерированный заголовок: '{gen_title}'")
-                print(f"Количество совпадающих токенов: {true_tokens == gen_tokens}")
-                print("---")
-                if batch_ == 1:
-                    break
-            break
 
     smooth_fn = SmoothingFunction().method1
     bleu_score = corpus_bleu(refs, hyps, smoothing_function=smooth_fn)
