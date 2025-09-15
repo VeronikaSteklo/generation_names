@@ -98,12 +98,12 @@ class PositionalEncoding(nn.Module):
 
 
 def generate_title(
-        model, tokenizer, text, max_len=512, device=torch.device("cpu"),
-        mode="greedy", temperature=1.0, top_k=10
+        model, tokenizer, text, max_len=128, device=torch.device("cpu"),
+        mode="beam", temperature=1.0, top_k=10, beam_size=3
 ):
     """
     Генерация заголовка для текста.
-    mode: "greedy", "sampling", "top-k"
+    mode: "greedy", "sampling", "top-k", "beam"
     """
 
     model.eval()
@@ -117,35 +117,64 @@ def generate_title(
 
     memory = model.encode(src, src_mask)
 
-    ys = torch.tensor([[bos_id]], dtype=torch.long, device=device)
+    if mode == "beam":
+        beams = [(torch.tensor([[bos_id]], device=device), 0.0)]
 
-    for _ in range(max_len):
-        tgt_pad_mask = (ys != pad_id).unsqueeze(-2)
-        tgt_sub_mask = subsequent_mask(ys.size(1)).to(device)
-        tgt_mask = tgt_pad_mask & tgt_sub_mask
+        for _ in range(max_len):
+            new_beams = []
+            for seq, score in beams:
+                tgt_pad_mask = (seq != pad_id).unsqueeze(-2)
+                tgt_sub_mask = subsequent_mask(seq.size(1)).to(device)
+                tgt_mask = tgt_pad_mask & tgt_sub_mask
 
-        out = model.decode(memory, src_mask, ys, tgt_mask)
-        logits = model.generator(out[:, -1])
+                out = model.decode(memory, src_mask, seq, tgt_mask)
+                logits = model.generator(out[:, -1])
+                log_probs = F.log_softmax(logits / temperature, dim=-1)
 
-        if mode == "greedy":
-            next_word = logits.argmax(dim=-1).item()
+                top_log_probs, top_tokens = torch.topk(log_probs, beam_size, dim=-1)
 
-        elif mode == "sampling":
-            prob = F.softmax(logits / temperature, dim=-1)
-            next_word = torch.multinomial(prob, num_samples=1).item()
+                for i in range(beam_size):
+                    next_seq = torch.cat([seq, top_tokens[:, i].unsqueeze(0)], dim=1)
+                    next_score = score + top_log_probs[0, i].item()
+                    new_beams.append((next_seq, next_score))
 
-        elif mode == "top-k":
-            topk_prob, topk_idx = torch.topk(logits, top_k, dim=-1)
-            topk_prob = F.softmax(topk_prob / temperature, dim=-1)
-            next_word = topk_idx[0, torch.multinomial(topk_prob, 1)].item()
+            beams = sorted(new_beams, key=lambda x: x[1], reverse=True)[:beam_size]
 
-        else:
-            raise ValueError("mode должен быть 'greedy', 'sampling' или 'top-k'")
+            if all(eos_id in seq for seq, _ in beams):
+                break
 
-        ys = torch.cat([ys, torch.tensor([[next_word]], device=device)], dim=1)
+        ys = beams[0][0]
 
-        if next_word == eos_id:
-            break
+    else:
+        ys = torch.tensor([[bos_id]], dtype=torch.long, device=device)
+
+        for _ in range(max_len):
+            tgt_pad_mask = (ys != pad_id).unsqueeze(-2)
+            tgt_sub_mask = subsequent_mask(ys.size(1)).to(device)
+            tgt_mask = tgt_pad_mask & tgt_sub_mask
+
+            out = model.decode(memory, src_mask, ys, tgt_mask)
+            logits = model.generator(out[:, -1])
+
+            if mode == "greedy":
+                next_word = logits.argmax(dim=-1).item()
+
+            elif mode == "sampling":
+                prob = F.softmax(logits / temperature, dim=-1)
+                next_word = torch.multinomial(prob, num_samples=1).item()
+
+            elif mode == "top-k":
+                topk_prob, topk_idx = torch.topk(logits, top_k, dim=-1)
+                topk_prob = F.softmax(topk_prob / temperature, dim=-1)
+                next_word = topk_idx[0, torch.multinomial(topk_prob, 1)].item()
+
+            else:
+                raise ValueError("mode должен быть 'greedy', 'sampling', 'top-k', 'beam'")
+
+            ys = torch.cat([ys, torch.tensor([[next_word]], device=device)], dim=1)
+
+            if next_word == eos_id:
+                break
 
     gen_text = tokenizer.decode(ys.squeeze().tolist())
     gen_text_for_bleu = " ".join(gen_text.split())
