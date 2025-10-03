@@ -7,7 +7,7 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 
 from my_models.Transformer.data.data_loader import TextTitleDataset, collate_fn
 from my_models.Transformer.debug.bleu_debug import debug_bleu
-from my_models.Transformer.model.metrics import evaluate_bleu
+from my_models.Transformer.model.metrics import evaluate_bleu, evaluate_meteor
 from my_models.Transformer.model.model import make_model, run_epoch
 
 from config import *
@@ -85,17 +85,21 @@ for epoch in range(NUM_EPOCHS):
     current_lr = optimizer.param_groups[0]["lr"]
 
     if (epoch + 1) % NUM_EPOCHS_FOR_METRICS == 0:
-        # bleu, bleu1 = evaluate_bleu(
-        #     model=model, tokenizer=tokenizer,
-        #     data_loader=val_loader, device=device
-        # )
-        bleu = debug_bleu(model, tokenizer, val_loader, device)
+        bleu, bleu1 = evaluate_bleu(
+            model=model, tokenizer=tokenizer,
+            data_loader=val_loader, device=device
+        )
+        meteor = evaluate_meteor(
+            model=model, tokenizer=tokenizer,
+            data_loader=val_loader, device=device
+        )
+        # bleu = debug_bleu(model, tokenizer, val_loader, device)
         epoch_time = time.time() - start_time
 
         print(f"Epoch {epoch + 1}, "
               f"train_loss = {train_loss:.4f}, val_loss = {val_loss:.4f}, "
-              f"Perplexity = {math.exp(val_loss)}, "
-              f"BLEU(4) = {bleu:.4f},"  # BLEU1 = {bleu1:.4f}, "
+              f"Perplexity = {math.exp(val_loss)}, meteor = {meteor:.4f}, "
+              f"BLEU(4) = {bleu:.4f}, BLEU1 = {bleu1:.4f}, "
               f"LR = {current_lr:.2e}, time = {epoch_time:.2f} sec")
     else:
         epoch_time = time.time() - start_time

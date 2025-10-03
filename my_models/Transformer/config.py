@@ -22,16 +22,16 @@ ETA_MIN = 1e-6
 
 LIMIT = 100
 
-NUM_EPOCHS_FOR_METRICS = 20
+NUM_EPOCHS_FOR_METRICS = 5
 
 # ----------------- Пути-----------------
-# MODEL_PATH = "../../models/transformer_all.pth"
-# TRAIN_CSV = "../../data/clean_data_aug/train_df.csv"
-# VAL_CSV = "../../data/clean_data_aug/val_df.csv"
+MODEL_PATH = "../../models/transformer_all.pth"
+TRAIN_CSV = "../../data/clean_data_aug/train_df.csv"
+VAL_CSV = "../../data/clean_data_aug/val_df.csv"
 
-MODEL_PATH = "../../models/debug.pth"
-TRAIN_CSV = "debug/debug_train.csv"
-VAL_CSV = "debug/debug_train.csv"
+# MODEL_PATH = "../../models/debug.pth"
+# TRAIN_CSV = "debug/debug_train.csv"
+# VAL_CSV = "debug/debug_train.csv"
 
 # ----------------- Модель -----------------
 MODEL_N = 1
