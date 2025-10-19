@@ -26,8 +26,8 @@ NUM_EPOCHS_FOR_METRICS = 5
 
 # ----------------- Пути-----------------
 MODEL_PATH = "../../models/transformer_all.pth"
-TRAIN_CSV = "../../data/clean_data_aug/train_df.csv"
-VAL_CSV = "../../data/clean_data_aug/val_df.csv"
+TRAIN_CSV = "../../data/training_data/train_df.csv"
+VAL_CSV = "../../data/training_data/val_df.csv"
 
 # MODEL_PATH = "../../models/debug.pth"
 # TRAIN_CSV = "debug/debug_train.csv"
