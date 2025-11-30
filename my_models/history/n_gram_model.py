@@ -3,6 +3,7 @@ import re
 from collections import defaultdict, Counter
 from typing import List, Tuple
 from nltk.translate.meteor_score import meteor_score
+import pickle
 
 import pandas as pd
 from tqdm import tqdm
@@ -204,13 +205,22 @@ class TitleNgramModel:
             scores.append(score)
         return sum(scores) / len(scores) if scores else 0.0
 
+    def save(self, path: str):
+        with open(path, "wb") as f:
+            pickle.dump(self, f)
+
+    @staticmethod
+    def load(path: str):
+        with open(path, "rb") as f:
+            return pickle.load(f)
 
 train_df = "../../data/training_data/train_df.csv"
 val_df = pd.read_csv("../../data/training_data/val_df.csv")
 
 model = TitleNgramModel(n_gram=3)
 model.train_from_csv(train_df)
+model.save(path="../../models/history/title_ngram_model.pkl")
 
 val_pairs = list(zip(val_df.text, val_df.title))
 meteor = model.evaluate_meteor(val_pairs)
-print(f"\nСредняя METEOR-оценка на валидационном наборе: {meteor:.4f}")  # на 4-граммах получился meteor 0.0091
+print(f"\nСредняя METEOR-оценка на валидационном наборе: {meteor:.4f}")
