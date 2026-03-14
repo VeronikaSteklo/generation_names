@@ -1,8 +1,10 @@
 import math
 import os
+import pickle
 
 from torch import nn, optim
 from torch.utils.data import DataLoader
+import torch.nn.functional as F
 import re
 
 from tqdm import tqdm
@@ -14,14 +16,15 @@ from my_models.history.FNNLM.model.model import FNNLM
 
 def train_model():
     train_dataset = FNNLMDataset(TRAIN_DATASET, CONTEXT_SIZE)
-    val_dataset = FNNLMDataset(VAL_DATASET, CONTEXT_SIZE, vocab=train_dataset.vocab)
+    val_dataset = FNNLMDataset(VAL_DATASET, CONTEXT_SIZE, vocab=train_dataset.vocab, first_sentences=2)
 
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
-    model = FNNLM(len(train_dataset.vocab), EMBEDDING_DIM, CONTEXT_SIZE, HIDDEN_DIM).to(DEVICE)
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    model = FNNLM(len(train_dataset.vocab), EMBEDDING_DIM, CONTEXT_SIZE, HIDDEN_DIM, DROPOUT).to(DEVICE)
+    pad_id = train_dataset.vocab["<PAD>"]
+    criterion = nn.CrossEntropyLoss(ignore_index=pad_id, label_smoothing=0.1)
+    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
 
     counter = 0
     best_val_loss = float('inf')
@@ -47,14 +50,16 @@ def train_model():
         # --- ВАЛИДАЦИЯ ---
         model.eval()
         val_loss = 0
+        val_samples = 0
         with torch.no_grad():
             for inputs, targets in val_loader:
                 inputs, targets = inputs.to(DEVICE), targets.to(DEVICE)
                 outputs = model(inputs)
                 loss = criterion(outputs, targets)
-                val_loss += loss.item()
+                val_loss += loss.item() * inputs.size(0)
+                val_samples += inputs.size(0)
 
-        avg_val_loss = val_loss / len(val_loader)
+        avg_val_loss = val_loss / val_samples
         val_ppl = math.exp(avg_val_loss)
 
         pbar_epochs.set_postfix({
@@ -74,30 +79,48 @@ def train_model():
                 print(f"\nРанняя остановка на эпохе {epoch + 1}. Лучший Val Loss: {best_val_loss:.4f}")
                 break
 
+    dataset_info = {
+        'vocab': train_dataset.vocab,
+        'rev_vocab': train_dataset.rev_vocab,
+        'vocab_size': len(train_dataset.vocab)
+    }
+    with open('../../../models/fnnlm/dataset_info.pkl', 'wb') as f:
+        pickle.dump(dataset_info, f)
+
     if os.path.exists(save_path):
         model.load_state_dict(torch.load(save_path))
 
     return model, train_dataset
 
 
-def generate_title(model, input_text, dataset, max_words=12):
+def generate_title(model, input_text, vocab, rev_vocab, max_words=12, temperature=0.7, top_k=5):
     device = next(model.parameters()).device
     model.eval()
 
-    clean_input = re.sub(r'[^\w\s]', '', input_text.lower()).split()[:CONTEXT_SIZE]
-    if len(clean_input) < CONTEXT_SIZE:
-        clean_input = ['<PAD>'] * (CONTEXT_SIZE - len(clean_input)) + clean_input
+    clean_input = re.sub(r'[^\w\s]', '', input_text.lower()).split()
+    if len(clean_input) > CONTEXT_SIZE:
+        current_context = clean_input[-CONTEXT_SIZE:]
+    else:
+        current_context = ['<PAD>'] * (CONTEXT_SIZE - len(clean_input)) + clean_input
 
-    current_context = clean_input
     result_title = []
 
     for _ in range(max_words):
-        input_ids = torch.tensor([[dataset.vocab.get(w, 1) for w in current_context]]).to(device)
+        input_ids = torch.tensor([[vocab.get(w, vocab['<UNK>']) for w in current_context]]).to(device)
 
         with torch.no_grad():
-            output = model(input_ids)
-            pred_id = torch.argmax(output, dim=1).item()
-            pred_word = dataset.rev_vocab[pred_id]
+            logits = model(input_ids)
+
+            logits /= temperature
+
+            top_logits, top_indices = torch.topk(logits, top_k)
+
+            probs = F.softmax(top_logits, dim=-1)
+
+            idx_in_top = torch.multinomial(probs, num_samples=1).item()
+            pred_id = top_indices[0, idx_in_top].item()
+
+            pred_word = rev_vocab[pred_id]
 
         if pred_word == '<END>':
             break

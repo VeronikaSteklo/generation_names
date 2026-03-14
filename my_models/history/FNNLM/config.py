@@ -5,7 +5,11 @@ EMBEDDING_DIM = 64
 HIDDEN_DIM = 128
 BATCH_SIZE = 32
 EPOCHS = 30
-MIN_WORD_FREQ = 10
+MIN_WORD_FREQ = 25
+
+LEARNING_RATE = 0.0001
+DROPOUT = 0.3
+WEIGHT_DECAY = 1e-5
 
 TRAIN_DATASET = "../../../data/training_data/train_df.csv"
 VAL_DATASET = "../../../data/training_data/val_df.csv"

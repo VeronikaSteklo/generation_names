@@ -4,7 +4,7 @@ model, dataset = train_model()
 
 print("\n--- Тестирование генерации ---")
 sample_text = "в данной работе мы исследуем методы машинного обучения для классификации"
-predicted = generate_title(model, sample_text, dataset)
+predicted = generate_title(model, sample_text, dataset.vocab, dataset.rev_vocab)
 
 print(f"Входной текст: {sample_text}")
 print(f"Сгенерированное название: {predicted}")

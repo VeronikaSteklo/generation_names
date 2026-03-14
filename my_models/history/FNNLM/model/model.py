@@ -3,23 +3,24 @@ import torch.nn as nn
 
 
 class FNNLM(nn.Module):
-    def __init__(self, vocab_size, embedding_dim, context_size, hidden_dim):
+    def __init__(self, vocab_size, embedding_dim, hidden_dim, dropout=0.3):
         super(FNNLM, self).__init__()
         self.embeddings = nn.Embedding(vocab_size, embedding_dim)
+        self.dropout = nn.Dropout(dropout)
 
-        self.linear1 = nn.Linear(context_size * embedding_dim, hidden_dim)
+        self.linear1 = nn.Linear(embedding_dim, hidden_dim)
         self.linear2 = nn.Linear(hidden_dim, vocab_size)
 
-        self.direct = nn.Linear(context_size * embedding_dim, vocab_size)
+        self.direct = nn.Linear(embedding_dim, vocab_size)
 
     def forward(self, x):
-        # Добавь это временно в метод forward, чтобы увидеть, какое число ломает код
-        if x.max() >= self.embeddings.num_embeddings:
-            print(f"Ошибка! Максимальный индекс в батче: {x.max()}")
-            print(f"Размер словаря в модели: {self.embeddings.num_embeddings}")
-        embeds = self.embeddings(x).view(x.shape[0], -1)
+        embeds = self.embeddings(x)
 
-        hidden = torch.tanh(self.linear1(embeds))
+        pooled = torch.mean(embeds, dim=1)
+        pooled = self.dropout(pooled)
 
-        output = self.linear2(hidden) + self.direct(embeds)
+        hidden = torch.tanh(self.linear1(pooled))
+        hidden = self.dropout(hidden)
+
+        output = self.linear2(hidden) + self.direct(pooled)
         return output
