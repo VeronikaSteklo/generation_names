@@ -1,6 +1,6 @@
 from n_gram_model import TitleNgramModel
 
-model = TitleNgramModel.load("../../models/history/title_ngram_model.pkl")
+model = TitleNgramModel.load("../../../models/history/title_ngram_model.pkl")
 
 while True:
     text = input("> Введите текст или exit для выхода")
