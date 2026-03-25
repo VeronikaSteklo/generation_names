@@ -19,7 +19,7 @@ for epoch in range(EPOCHS):
     )
     prev_val_loss = val_loss
 
-    if val_loss < BEST_VAL_LOSS:
+    if val_loss < BEST_VAL_LOSS - EPSILON:
         BEST_VAL_LOSS = val_loss
         patience_counter = 0
         model.save_pretrained(MODEL_PATH)
