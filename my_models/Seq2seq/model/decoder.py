@@ -1,21 +1,31 @@
 import torch
-import torch.nn as nn
+from torch import nn
+import torch.nn.functional as F
+
+from my_models.Seq2seq.model.attention import Attention
+
 
 class Decoder(nn.Module):
-    def __init__(self, output_dim: int, emb_dim: int, hid_dim: int, n_layers: int, dropout: float):
+    def __init__(self, output_dim: int, emb_dim: int, hidden_dim: int, dropout: float):
         super().__init__()
         self.output_dim = output_dim
-        self.hid_dim = hid_dim
-        self.n_layers = n_layers
+        self.attention = Attention(hidden_dim)
 
         self.embedding = nn.Embedding(output_dim, emb_dim)
-        self.rnn = nn.LSTM(emb_dim, hid_dim, n_layers, dropout=dropout)
-        self.fc_out = nn.Linear(hid_dim, output_dim)
+        self.lstm = nn.LSTM(hidden_dim + emb_dim, hidden_dim, batch_first=True)
+        self.fc_out = nn.Linear(hidden_dim * 2 + emb_dim, output_dim)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, input: torch.Tensor, hidden: torch.Tensor, cell: torch.Tensor):
-        input = input.unsqueeze(0)  # [1, B]
-        embedded = self.dropout(self.embedding(input))
-        output, (hidden, cell) = self.rnn(embedded, (hidden, cell))
-        prediction = self.fc_out(output.squeeze(0))
+    def forward(self, input_tok, hidden, cell, encoder_outputs):
+        input_tok = input_tok.unsqueeze(1)
+        embedded = self.dropout(self.embedding(input_tok))
+
+        a = self.attention(hidden, encoder_outputs).unsqueeze(1)
+
+        context = torch.bmm(a, encoder_outputs)
+        rnn_input = torch.cat((embedded, context), dim=2)
+        output, (hidden, cell) = self.lstm(rnn_input, (hidden, cell))
+
+        prediction = self.fc_out(torch.cat((output, context, embedded), dim=2).squeeze(1))
+
         return prediction, hidden, cell

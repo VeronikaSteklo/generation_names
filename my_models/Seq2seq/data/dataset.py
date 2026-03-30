@@ -1,57 +1,44 @@
-from typing import List
-
 import torch
 from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
 
-
-def text_to_tensor(text: str, vocab, add_sos_eos=True, max_len: int | None = None,
-                   truncate_from_start=False) -> torch.Tensor:
-    """Преобразует текст в тензоры, с опциональной обрезкой"""
-    tokens = text.strip().split()
-
-    if max_len is not None:
-        if truncate_from_start:
-            tokens = tokens[-max_len:]
-        else:
-            tokens = tokens[:max_len]
-
-    indices = [vocab.word_to_index(w) for w in tokens]
-
-    if add_sos_eos:
-        indices = [vocab.word2index["<sos>"]] + indices + [vocab.word2index["<eos>"]]
-
-    return torch.tensor(indices, dtype=torch.long)
+from my_models.Seq2seq.data.vocab import simple_tokenize
 
 
 class TitleDataset(Dataset):
-    def __init__(self, pairs: list[tuple[str, str]], input_vocab, output_vocab):
-        """
-            pairs — список пар (название, текст),
-            input_vocab - словарь с частотами слов из текстов,
-            output_vocab - словарь с частотами слов из названий
-        """
-        self.pairs = pairs
-        self.input_vocab = input_vocab
-        self.output_vocab = output_vocab
+    def __init__(self, df, vocab, max_src_len=300, max_trg_len=30):
+        self.df = df
+        self.vocab = vocab
+        self.max_src_len = max_src_len
+        self.max_trg_len = max_trg_len
 
     def __len__(self):
-        return len(self.pairs)
+        return len(self.df)
+
+    def text_to_indices(self, text, max_len, add_sos_eos=True):
+        tokens = simple_tokenize(str(text))
+
+        if len(tokens) > max_len:
+            tokens = tokens[:max_len]
+
+        indices = [self.vocab.word2index.get(t, 1) for t in tokens]
+
+        if add_sos_eos:
+            indices = [2] + indices + [3]
+
+        return torch.tensor(indices, dtype=torch.long)
 
     def __getitem__(self, idx):
-        title, text = self.pairs[idx]
-        input_tensor = text_to_tensor(text, self.input_vocab, add_sos_eos=False, max_len=300)
-        target_tensor = text_to_tensor(title, self.output_vocab, add_sos_eos=False, max_len=30)
-        return input_tensor, target_tensor
+        row = self.df.iloc[idx]
+
+        src_tensor = self.text_to_indices(row['text'], self.max_src_len, add_sos_eos=False)
+        trg_tensor = self.text_to_indices(row['title'], self.max_trg_len, add_sos_eos=True)
+
+        return src_tensor, trg_tensor
 
 
-def collate_fn(batch: List[tuple[str, str]]):
-    """
-    batch: list of (input_tensor, target_tensor)
-    Returns:
-        input_padded: [batch, src_len]
-        target_padded: [batch, trg_len]
-    """
+def collate_fn(batch):
+    """Функция для дополнения батча паддингами"""
     src_batch, trg_batch = zip(*batch)
 
     src_padded = pad_sequence(src_batch, padding_value=0, batch_first=True)
