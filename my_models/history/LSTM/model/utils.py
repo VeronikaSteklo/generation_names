@@ -1,27 +1,30 @@
 import torch
 
 
-def generate_title(model, vocab, device, text, max_len=20):
+def generate_title(model, vocab, device, text, max_gen_len=20):
     model.eval()
+    tokens = vocab.encode(text)
+    input_ids = [vocab.stoi["<SOS>"]] + tokens + [vocab.stoi["<SEP>"]]
+    input_tensor = torch.tensor([input_ids]).to(device)
 
-    encoded_text = [vocab.stoi["<SOS>"]] + vocab.encode(" ".join(text.split()[:40])) + [vocab.stoi["<SEP>"]]
-    input_tensor = torch.tensor([encoded_text]).to(device)
-
-    result = []
-    hidden = None
+    generated = []
 
     with torch.no_grad():
-        logits, hidden = model(input_tensor, hidden)
+        for _ in range(max_gen_len):
+            logits, _ = model(input_tensor)
 
-        last_token = torch.argmax(logits[0, -1, :]).item()
+            last_token_logits = logits[0, -1, :]
 
-        for _ in range(max_len):
-            if last_token == vocab.stoi["<EOS>"]:
+            probs = torch.softmax(last_token_logits / 0.4, dim=-1)
+
+            next_token = torch.multinomial(probs, num_samples=1).item()
+
+            if next_token == vocab.stoi["<EOS>"]:
                 break
-            result.append(last_token)
 
-            curr_input = torch.tensor([[last_token]]).to(device)
-            logits, hidden = model(curr_input, hidden)
-            last_token = torch.argmax(logits[0, -1, :]).item()
+            generated.append(next_token)
 
-    return vocab.decode(result)
+            next_tensor = torch.tensor([[next_token]]).to(device)
+            input_tensor = torch.cat([input_tensor, next_tensor], dim=1)
+
+    return vocab.decode(generated)

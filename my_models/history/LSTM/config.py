@@ -14,7 +14,7 @@ EPOCHS = 20
 PATIENCE = 3
 MAX_LEN = 150
 
-LIMIT = 400000
+LIMIT = 100000
 
 if torch.backends.mps.is_available():
     DEVICE = torch.device("mps")

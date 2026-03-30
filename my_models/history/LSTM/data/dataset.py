@@ -38,7 +38,7 @@ class LSTMTitleDataset(Dataset):
         self.samples = []
 
         for _, row in df.dropna(subset=['text', 'title']).iterrows():
-            text_tokens = self.vocab.encode(str(row['text']))
+            text_tokens = self.vocab.encode(str(row['text']))[:80]
             title_tokens = self.vocab.encode(row['title'])
 
             full_seq = [vocab.stoi["<SOS>"]] + text_tokens + [vocab.stoi["<SEP>"]] + title_tokens + [

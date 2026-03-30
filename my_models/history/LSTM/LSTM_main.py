@@ -10,8 +10,13 @@ from data.dataset import TitleVocab, LSTMTitleDataset
 from model.model import LSTMTitleGen
 import config
 
-train_df = pd.read_csv(config.TRAIN_DATA_PATH).head(config.LIMIT).dropna(subset=['text', 'title'])
-val_df = pd.read_csv(config.VAL_DATA_PATH).head(config.LIMIT).dropna(subset=['text', 'title'])
+train_full = pd.read_csv(config.TRAIN_DATA_PATH)
+train_full = train_full.sample(frac=1, random_state=42).reset_index(drop=True)
+train_df = train_full.head(config.LIMIT).dropna(subset=['text', 'title'])
+
+val_full = pd.read_csv(config.VAL_DATA_PATH)
+val_full = val_full.sample(frac=1, random_state=42).reset_index(drop=True)
+val_df = val_full.head(config.LIMIT).dropna(subset=['text', 'title'])
 
 vocab = TitleVocab(train_df)
 
@@ -41,8 +46,7 @@ pbar = tqdm(range(config.EPOCHS), desc="Training Progress")
 for epoch in pbar:
     model.train()
     train_loss = 0
-    p_train_loader = tqdm(train_loader, desc="Training Progress")
-    for inputs, targets in p_train_loader:
+    for inputs, targets in train_loader:
         inputs, targets = inputs.to(config.DEVICE), targets.to(config.DEVICE)
         optimizer.zero_grad()
         logits, _ = model(inputs)
