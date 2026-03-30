@@ -7,7 +7,7 @@ import my_models.history.RNN.config as config
 
 
 class Vocab:
-    def __init__(self, texts, min_freq=2):
+    def __init__(self, texts, min_freq=5):
         self.itos = [config.PAD_TOKEN, config.SOS_TOKEN, config.EOS_TOKEN, config.UNK_TOKEN]
         self.stoi = {token: i for i, token in enumerate(self.itos)}
 

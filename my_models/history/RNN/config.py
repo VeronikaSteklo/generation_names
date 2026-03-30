@@ -13,12 +13,12 @@ elif torch.cuda.is_available():
 else:
     DEVICE = torch.device("cpu")
 
-EMBED_DIM = 256
-HID_DIM = 512
+EMBED_DIM = 128
+HID_DIM = 256
 N_LAYERS = 2
 DROPOUT = 0.3
 LR = 1e-3
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 EPOCHS = 15
 PATIENT = 2
 

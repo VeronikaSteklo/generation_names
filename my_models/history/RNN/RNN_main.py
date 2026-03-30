@@ -9,6 +9,8 @@ from data.dataset import TitleDataset, Vocab, collate_fn
 from model.model import TitleRNN
 from model.utils import train_epoch, evaluate
 import config
+import os
+os.environ['PYTORCH_MPS_HIGH_WATERMARK_RATIO'] = '0.0'
 
 train_df = pd.read_csv(config.TRAIN_DATA_PATH).head(config.LIMIT)
 val_df = pd.read_csv(config.VAL_DATA_PATH).head(config.LIMIT)
@@ -53,6 +55,9 @@ for epoch in epoch_range:
         'train_loss': f'{train_loss:.4f}',
         'val_loss': f'{val_loss:.4f}'
     })
+
+    if torch.backends.mps.is_available():
+        torch.mps.empty_cache()
 
     if val_loss < best_loss:
         best_loss = val_loss
