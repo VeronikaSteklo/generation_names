@@ -21,7 +21,7 @@ def load_model_with_dataset():
         print(f"Информация о датасете загружена!")
         print(f"Размер словаря: {vocab_size}")
 
-        model = FNNLM(vocab_size, EMBEDDING_DIM, CONTEXT_SIZE, HIDDEN_DIM).to(DEVICE)
+        model = FNNLM(vocab_size=vocab_size, embedding_dim=EMBEDDING_DIM, hidden_dim=HIDDEN_DIM).to(DEVICE)
 
         model.load_state_dict(torch.load(save_path, map_location=DEVICE))
         model.eval()
