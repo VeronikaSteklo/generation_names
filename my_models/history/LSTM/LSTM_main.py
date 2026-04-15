@@ -34,7 +34,7 @@ model = LSTMTitleGen(
     dropout=config.DROPOUT
 ).to(config.DEVICE)
 
-criterion = nn.CrossEntropyLoss(ignore_index=0)
+criterion = nn.CrossEntropyLoss(ignore_index=0, reduction='none')
 optimizer = torch.optim.Adam(model.parameters(), lr=config.LR)
 
 epoch_no_improve = 0
@@ -46,11 +46,15 @@ pbar = tqdm(range(config.EPOCHS), desc="Training Progress")
 for epoch in pbar:
     model.train()
     train_loss = 0
-    for inputs, targets in train_loader:
-        inputs, targets = inputs.to(config.DEVICE), targets.to(config.DEVICE)
+    for inputs, targets, masks in train_loader:
+        inputs, targets, masks = inputs.to(config.DEVICE), targets.to(config.DEVICE), masks.to(config.DEVICE)
         optimizer.zero_grad()
         logits, _ = model(inputs)
-        loss = criterion(logits.view(-1, len(vocab)), targets.view(-1))
+        raw_loss = criterion(logits.view(-1, len(vocab)), targets.view(-1))
+
+        masked_loss = raw_loss * masks.view(-1)
+
+        loss = masked_loss.sum() / (masks.sum() + 1e-9)
         loss.backward()
         optimizer.step()
         train_loss += loss.item()
@@ -60,10 +64,15 @@ for epoch in pbar:
     model.eval()
     val_loss = 0
     with torch.no_grad():
-        for inputs, targets in val_loader:
-            inputs, targets = inputs.to(config.DEVICE), targets.to(config.DEVICE)
+        for inputs, targets, masks in val_loader:
+            inputs, targets, masks = inputs.to(config.DEVICE), targets.to(config.DEVICE), masks.to(config.DEVICE)
+
             logits, _ = model(inputs)
-            loss = criterion(logits.view(-1, len(vocab)), targets.view(-1))
+
+            raw_loss = criterion(logits.view(-1, len(vocab)), targets.view(-1))
+            masked_loss = raw_loss * masks.view(-1)
+            loss = masked_loss.sum() / (masks.sum() + 1e-9)
+
             val_loss += loss.item()
 
     avg_val_loss = val_loss / len(val_loader)

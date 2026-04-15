@@ -52,11 +52,17 @@ class LSTMTitleDataset(Dataset):
 
     def __getitem__(self, idx):
         tokens = self.samples[idx]
+        sep_idx = tokens.index(self.vocab.stoi["<SEP>"])
 
         input_seq = tokens[:-1]
         target_seq = tokens[1:]
 
+        mask = [0] * len(input_seq)
+        for i in range(sep_idx, len(mask)):
+            mask[i] = 1
+
         input_seq = input_seq[:self.max_len] + [0] * max(0, self.max_len - len(input_seq))
         target_seq = target_seq[:self.max_len] + [0] * max(0, self.max_len - len(target_seq))
+        mask = mask[:self.max_len] + [0] * max(0, self.max_len - len(mask))
 
-        return torch.tensor(input_seq), torch.tensor(target_seq)
+        return torch.tensor(input_seq), torch.tensor(target_seq), torch.tensor(mask, dtype=torch.float)
