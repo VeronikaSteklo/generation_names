@@ -1,6 +1,5 @@
 import torch
 from torch import nn
-import torch.nn.functional as F
 
 from my_models.Seq2seq.model.attention import Attention
 
@@ -12,8 +11,10 @@ class Decoder(nn.Module):
         self.attention = Attention(hidden_dim)
 
         self.embedding = nn.Embedding(output_dim, emb_dim)
-        self.lstm = nn.LSTM(hidden_dim + emb_dim, hidden_dim, batch_first=True)
-        self.fc_out = nn.Linear(hidden_dim * 2 + emb_dim, output_dim)
+
+        self.lstm = nn.LSTM(emb_dim + (hidden_dim * 2), hidden_dim, batch_first=True)
+
+        self.fc_out = nn.Linear(hidden_dim * 3 + emb_dim, output_dim)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, input_tok, hidden, cell, encoder_outputs):

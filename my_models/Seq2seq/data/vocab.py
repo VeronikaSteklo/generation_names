@@ -2,12 +2,15 @@ import re
 from collections import Counter
 import pickle
 
+import tiktoken
+
 import my_models.Seq2seq.config as config
 
-
+encoding = tiktoken.get_encoding("cl100k_base")
 def simple_tokenize(text):
     """Разбивает текст на слова и знаки препинания, сохраняя регистр или в lower"""
-    return re.findall(r"\w+|[^\w\s]", text.lower(), re.UNICODE)
+    tokens_ids = encoding.encode(text.lower())
+    return [encoding.decode([t]) for t in tokens_ids]
 
 class Vocab:
     def __init__(self):
