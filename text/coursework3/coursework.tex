@@ -427,6 +427,201 @@
 
     Несмотря на успех, модель FNNLM остается ограниченной фиксированным размером входного окна, что не позволяет учитывать глобальные связи в длинных предложениях.
 
+    \subsubsection{Рекуррентные нейронные сети (RNN)}
+
+    Процесс человеческого мышления характеризуется непрерывностью: понимание каждого нового слова
+    базируется на контексте предыдущих, что обеспечивает устойчивость мыслей.
+    Традиционные нейронные сети прямого распространения лишены этой особенности,
+    что является их существенным недостатком при работе с последовательными данными.
+    Рекуррентные нейронные сети (RNN) решают данную проблему за счет наличия внутренних циклов,
+    позволяющих информации сохраняться \cite{olah2015lstm}.
+
+    Рекуррентная сеть — это любая сеть, содержащая циклы в своих связях,
+    что означает зависимость значения некоторого узла от его собственных более ранних выходных
+    данных.
+    Эти архитектуры служат фундаментом для более сложных подходов,
+    таких как сети с долгой краткосрочной памятью (LSTM).
+
+    В отличие от традиционного подхода на основе скользящего окна, последовательности в RNN обрабатываются по одному элементу за раз\textsuperscript{}. Для вычисления выходного значения $y_t$ для входа $x_t$ необходимо значение активации скрытого слоя $h_t$.
+
+
+    Ключевым отличием RNN является рекуррентная связь,
+    которая дополняет входные данные для вычислений на скрытом слое значением этого же слоя из предыдущего
+    момента времени.
+    Скрытый слой $h_{t-1}$ обеспечивает форму памяти или контекста,
+    который кодирует результаты предыдущей обработки и информирует решения на более поздних этапах \.
+
+
+    Математически процесс вычисления скрытого состояния $h_t$ и выходного вектора $y_t$ описывается следующими
+    уравнениями:
+    \begin{gather*}
+        h_t = g(U h_{t-1} + W x_t)\\
+        y_t = f(V h_t)
+    \end{gather*}
+    Где:
+    \begin{enumerate}
+        \item $W \in \mathbb{R}^{d_h \times d_{in}}$ — матрица весов входного вектора;
+        \item $U \in \mathbb{R}^{d_h \times d_h}$ — матрица весов рекуррентных соединений;
+        \item $V \in \mathbb{R}^{d_{out} \times d_h}$ — матрица весов выходного слоя;
+        \item $g$ и $f$ — функции активации.
+    \end{enumerate}
+
+    Для задач классификации или языкового моделирования выход $y_t$ обычно вычисляется через функцию
+    softmax для получения распределения вероятностей по классам:
+    \[y_t = \text{softmax}(V h_t)\]
+
+    Рекуррентную сеть можно представить как несколько копий одной и той же сети,
+    каждая из которых передает сообщение преемнику.
+    Этот процесс называется «развертыванием» сети во времени.
+    При развертывании становится очевидно, что слои юнитов копируются для каждого временного шага
+    и имеют разные значения, однако соответствующие матрицы весов ($W, U, V$) остаются общими
+    для всех моментов времени.
+
+    Подобная цепочечная природа делает RNN естественной архитектурой для работы со списками и последовательностями.
+    Это подтверждается успехами в таких областях, как распознавание речи,
+    машинный перевод и аннотирование изображений \cite{jm3}.
+
+    Теоретически скрытый слой способен хранить информацию, охватывающую контекст до самого начала
+    последовательности.
+    Однако на практике обучение стандартных RNN установлению связей между данными с большим временным
+    разрывом оказывается крайне сложным.
+
+    Например, в коротком контексте («облака плывут по\ldots») предсказание слова «небу» тривиально.
+    Но в сложных сценариях, где релевантная информация отделена от места использования длинным
+    фрагментом текста, RNN теряют способность к обучению.
+    Фундаментальные причины этих трудностей были исследованы в работах Хохрайтера (1991) и Бенджио (1994).
+
+    Неспособность стандартных рекуррентных сетей переносить критически важную информацию на большие расстояния
+    обусловлена двумя основными причинами:
+
+    \begin{enumerate}
+        \item \textbf{Функциональная перегрузка:} Скрытые слои и определяющие их веса вынуждены одновременно решать две задачи: предоставлять информацию для текущего решения и обновлять контекст для будущих шагов.
+        \item \textbf{Проблема затухающих градиентов:} В процессе обратного распространения ошибки во времени (BPTT) скрытые слои подвергаются многократному умножению, что при длинных последовательностях часто приводит к стремлению градиентов к нулю.
+    \end{enumerate}
+
+    Для решения проблемы долговременных зависимостей используются архитектуры LSTM,
+    которые будут рассмотрены далее \cite{olah2015lstm}.
+
+    \subsubsection{LSTM}
+
+    Сети долгой краткосрочной памяти (Long Short-Term Memory, LSTM)
+    решают проблему управления контекстом, разделяя её на две подзадачи:
+    удаление ненужной информации и добавление данных, необходимых для будущих решений.
+
+    Основное отличие LSTM заключается в их способности обучаться долговременным зависимостям «по умолчанию»,
+    что является их базовым поведением, а не результатом сложной настройки.
+    В то время как стандартные RNN состоят из цепочки повторяющихся модулей с простой структурой
+    (например, один слой с функцией $\tanh$), модуль LSTM содержит четыре взаимодействующих слоя,
+    организованных особым образом.
+
+    Ключевым элементом архитектуры является состояние ячейки — горизонтальная линия,
+    проходящая через верхнюю часть диаграммы модуля.
+    Состояние ячейки можно сравнить с конвейерной лентой,
+    которая проходит через всю цепочку с минимальными линейными взаимодействиями,
+    что позволяет информации беспрепятственно протекать по ней, сохраняясь на протяжении длительных интервалов.
+
+    LSTM управляет информацией в состоянии ячейки с помощью структур, называемых гейтами.
+    Они строятся по общей схеме: слой прямого распространения,
+    за которым следует сигмоидальная функция активации и поэлементное умножение.
+    Сигмоида выводит значения, близкие к 0 или 1, действуя как бинарная маска:
+    значения, соответствующие единицам, проходят почти без изменений, а соответствующие нулям — стираются.
+
+    Процесс обновления состояния в блоке LSTM включает следующие этапы:
+
+    \begin{enumerate}
+        \item \textbf{Гейт забывания:} На основе предыдущего скрытого состояния $h_{t-1}$ и текущего входа $x_t$ принимается решение, какую информацию следует удалить из состояния ячейки.
+        Например, в языковой модели при появлении нового подлежащего сеть может «забыть» грамматический род предыдущего субъекта.
+        \begin{gather*}
+            f_t = \sigma (U_f h_{t-1} + W_f x_t)\\
+            k_t = c_{t-1} \odot f_t
+        \end{gather*}
+        \item \textbf{Гейт добавления:} Состоит из двух частей: сигмоидальный «входной гейт» определяет, какие значения будут обновлены, а слой $\tanh$ создает вектор новых кандидатов $\tilde{C}_t$.
+        \begin{gather*}
+            g_t = \tanh(U_g h_{t-1} + W_g x_t)\\
+            i_t = \sigma (U_i h_{t-1} + W_i x_t)\\
+            j_t = g_t \odot i_t
+        \end{gather*}
+        \item \textbf{Обновление вектора контекста:}
+        \[c_t = j_t + k_t\]
+        \item \textbf{Выходной гейт:} Формирует финальное скрытое состояние $h_t$ на основе фильтрации состояния ячейки. После применения $\tanh$ к состоянию ячейки оно умножается на результат выходной сигмоиды.
+        \begin{gather*}
+            o_t = \sigma (U_o h_{t-1} + W_o x_t)\\
+            h_t = o_t \odot \tanh(c_t)
+        \end{gather*}
+    \end{enumerate}
+    Скрытое состояние $h_t$ является выходным значением LSTM на каждом временном шаге
+    и может использоваться как вход для последующих слоев или для формирования финального результата
+    сети \cite{jm3}.
+
+    Существует множество модификаций базовой архитектуры LSTM. Среди них выделяются «peephole connections» (связи-глазки), позволяющие гейтам учитывать текущее состояние ячейки, и архитектуры со связанными гейтами забывания и добавления.
+
+    Одной из наиболее популярных упрощенных версий является Gated Recurrent Unit (GRU), предложенный Cho et al. (2014).
+    В GRU гейты забывания и входа объединены в единый «гейт обновления», а состояния ячейки и скрытого слоя совмещены, что делает модель менее требовательной к вычислительным ресурсам.
+
+    Несмотря на эффективность LSTM, современные исследования указывают на следующий важный этап в развитии рекуррентных архитектур — механизмы внимания (Attention).
+    Внимание позволяет сети на каждом шаге выбирать наиболее релевантные фрагменты из всей совокупности доступной информации, что значительно расширяет возможности обработки длинных и сложных последовательностей \cite{olah2015lstm}.
+
+    Основываясь на предоставленных вами материалах, предлагаю следующий текст для теоретической части вашей курсовой работы. Он логически продолжает раздел о нейросетевых архитектурах и описывает модель Seq2Seq строго по указанной статье.
+
+    \subsubsection{Sequence-to-Sequence (Seq2Seq)}
+
+    Глубокие нейронные сети обладают высокой вычислительной мощностью,
+    однако их применение ограничено задачами, где входные и целевые данные могут быть представлены
+    векторами фиксированной размерности.
+    Это является существенным ограничением, поскольку многие важные задачи,
+    такие как машинный перевод или вопросно-ответные системы, лучше всего выражаются в виде последовательностей,
+    длины которых заранее не известны.
+    Стандартные рекуррентные нейронные сети (RNN) способны преобразовывать последовательности,
+    если выравнивание между входами и выходами известно заранее, но их сложно применить к задачам,
+    где длины входных и выходных последовательностей различаются и имеют сложные немонотонные связи.
+    Для решения общих задач преобразования последовательности в последовательность может быть использована
+    архитектура на базе сетей долгой краткосрочной памяти (LSTM).
+
+    Основная идея данного подхода заключается в использовании одной сети LSTM для чтения входной
+    последовательности с целью получения векторного представления большой фиксированной размерности.
+    Затем используется вторая глубокая сеть LSTM для извлечения целевой последовательности из этого вектора.
+    Вторая LSTM по сути является языковой моделью на базе рекуррентной нейронной сети,
+    работа которой обусловлена входной последовательностью.
+    Общая схема данного процесса представлена на рисунке \ref{fig:seq2seq}.
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{pic/seq2seq}
+        \caption{Архитектура Sequence-to-Sequence}\label{fig:seq2seq}
+    \end{figure}
+    С математической точки зрения, цель модели — оценить условную вероятность $p(y_1, \dots, y_{T'} | x_1, \dots, x_T)$,
+    где $(x_1, \dots, x_T)$ — входная последовательность, а $(y_1, \dots, y_{T'})$ —
+    соответствующая ей выходная последовательность, длина которой $T'$ может отличаться от длины входа
+    $T$.
+    Модель вычисляет эту вероятность в два этапа:
+
+
+    \begin{enumerate}
+        \item Сначала получается фиксированное векторное представление $v$ входной последовательности, которое является последним скрытым состоянием первой LSTM.
+        \item Затем вычисляется вероятность выходной последовательности с использованием стандартной формулировки языковой модели LSTM, начальное скрытое состояние которой устанавливается равным вектору $v$:
+        \\$p(y_1, \dots, y_{T'} | x_1, \dots, x_T) = \prod_{t=1}^{T'} p(y_t | v, y_1, \dots, y_{t-1})$.
+    \end{enumerate}
+
+    Важным условием является то, что каждое предложение должно заканчиваться специальным символом конца предложения «» (end-of-sentence).
+    Это позволяет модели определять распределение вероятностей для последовательностей всех возможных длин.
+    Практическая реализация данной архитектуры имеет три важные особенности:
+
+    \begin{enumerate}
+        \item В модели используются две разные LSTM-сети: одна для входной последовательности («кодировщик»), другая для выходной («декодировщик»).
+        Это увеличивает количество параметров модели при незначительных вычислительных затратах и делает
+        естественным одновременное обучение на нескольких языковых парах.
+        \item Глубокие сети LSTM значительно превосходят поверхностные, поэтому на практике применяется архитектура с четырьмя слоями.
+        \item Обращение порядка слов во входном предложении (при сохранении прямого порядка в целевом предложении) существенно улучшает качество работы модели.
+        Это простое преобразование данных вводит множество краткосрочных зависимостей: первые слова исходного предложения оказываются очень близко к первым словам целевого предложения.
+    \end{enumerate}
+
+    Данная архитектура также обладает полезным свойством:
+    она учится преобразовывать входные предложения переменной длины в фиксированное векторное представление,
+    в котором предложения со схожим смыслом находятся близко друг к другу, а с различным смыслом — далеко.
+    Представления чувствительны к порядку слов, но при этом остаются относительно инвариантными
+    к замене активного залога на пассивный.
+
+
     \newpage
 
 
@@ -2265,15 +2460,46 @@ def load(path: str):
     \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/n-gram/n-gram_train.py}
     \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/n-gram/n-gram_test.py}
 
-%    \section{Seq2seq}
-%    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/Seq2seq/data/dataset.py}
-%    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/Seq2seq/data/preprocess.py}
-%    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/Seq2seq/data/vocab.py}
-%    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/Seq2seq/model/decoder.py}
-%    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/Seq2seq/model/encoder.py}
-%    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/Seq2seq/model/seq2seq.py}
-%    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/Seq2seq/config.py}
-%    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/Seq2seq/inference.py}
+
+    \section{Feedforward Neural Network Language Model}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/FNNLM/data/dataset.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/FNNLM/model/model.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/FNNLM/model/utils.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/FNNLM/config.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/FNNLM/FNNLM_main.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/FNNLM/FNNLM_test.py}
+
+
+    \section{Рекурентные нейронные сети}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/RNN/data/dataset.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/RNN/model/model.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/RNN/model/utils.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/RNN/config.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/RNN/RNN_main.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/RNN/RNN_test.py}
+
+
+    \section{LSTM}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/LSTM/data/dataset.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/LSTM/model/model.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/LSTM/model/utils.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/LSTM/config.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/LSTM/LSTM_main.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/LSTM/LSTM_test.py}
+
+
+    \section{Seq2seq}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/Seq2seq/data/dataset.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/Seq2seq/data/vocab.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/Seq2seq/model/attention.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/Seq2seq/model/decoder.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/Seq2seq/model/encoder.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/Seq2seq/model/seq2seq.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/Seq2seq/model/utils.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/Seq2seq/config.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/Seq2seq/seq2seq_main.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/Seq2seq/seq2seq_test.py}
+
 
 \end{document}
 
