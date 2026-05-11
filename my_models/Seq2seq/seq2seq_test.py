@@ -24,20 +24,6 @@ while True:
 
         tokens = simple_tokenize(user_input)
         debug_info = []
-        unk_count = 0
-
-        for t in tokens:
-            if t in vocab.word2index:
-                debug_info.append(f"{t}")
-            else:
-                debug_info.append(f"[{t} -> UNK]")
-                unk_count += 1
-
-        print("-" * 30)
-        print(f"Как модель видит вход: {''.join(debug_info)}")
-        if unk_count > 0:
-            print(f"Внимание: {unk_count} слов(а) заменены на <unk>")
-        print("-" * 30)
 
         response = generate_response(model, vocab, user_input)
 
