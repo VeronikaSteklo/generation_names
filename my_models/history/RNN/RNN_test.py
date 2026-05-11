@@ -5,15 +5,12 @@ from model.utils import generate_title
 
 
 def run_inference():
-    # 1. Загрузка строго по твоему формату
     try:
-        # weights_only=False обязателен, чтобы корректно подгрузить объект Vocab
         checkpoint = torch.load(config.MODEL_SAVE_PATH, map_location=config.DEVICE, weights_only=False)
 
         vocab = checkpoint['vocab']
         model_state = checkpoint['model_state']
 
-        # 2. Инициализация модели
         model = TitleRNN(
             vocab_size=len(vocab.itos),
             emb_dim=config.EMBED_DIM,
@@ -22,7 +19,6 @@ def run_inference():
             dropout=config.DROPOUT
         ).to(config.DEVICE)
 
-        # 3. Загрузка весов
         model.load_state_dict(model_state)
         model.eval()
 
@@ -34,7 +30,6 @@ def run_inference():
         print(f"Ошибка при загрузке: {e}")
         return
 
-    # 4. Цикл ввода
     print("\nВведите текст лекции для генерации заголовка (выход: 'quit')")
     while True:
         try:
@@ -46,9 +41,6 @@ def run_inference():
             if not text:
                 continue
 
-            # Генерация (используем твою функцию из utils)
-            # Проверь порядок аргументов в своей generate_title!
-            # Обычно это (model, text, vocab, device)
             res = generate_title(model, text, vocab, config.DEVICE)
 
             print(f"Заголовок: {res}")
