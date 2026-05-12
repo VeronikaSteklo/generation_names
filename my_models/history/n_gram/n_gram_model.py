@@ -1,3 +1,4 @@
+import math
 import random
 import re
 from collections import defaultdict, Counter
@@ -204,6 +205,34 @@ class TitleNgramModel:
             score = meteor_score([tokenize(true_title)], tokenize(generated))
             scores.append(score)
         return sum(scores) / len(scores) if scores else 0.0
+
+    def calculate_sentence_loss(self, text: str, title: str) -> float:
+        """Вычисляет средний negative log-likelihood для заголовка."""
+        text_tokens = tokenize(text)
+        title_tokens = tokenize(title)
+
+        # Подготовка контекста как при обучении
+        text_tokens = [t if t in self.vocab else self.unknown_token for t in text_tokens]
+        title_tokens = [t if t in self.vocab else self.unknown_token for t in title_tokens]
+
+        # Начинаем с конца текста + токен заголовка
+        full_sequence = text_tokens + [self.title_token] + title_tokens + [self.end_token]
+
+        total_log_prob = 0
+        count = 0
+
+        # Считаем вероятность только для токенов заголовка и end_token
+        start_idx = len(text_tokens) + 1
+        for i in range(start_idx, len(full_sequence)):
+            context = tuple(full_sequence[max(0, i - (self.n_gram - 1)):i])
+            word = full_sequence[i]
+
+            prob = self.get_probability(context, word)
+            # Избегаем log(0) за счет минимального значения
+            total_log_prob += -math.log(max(prob, 1e-10))
+            count += 1
+
+        return total_log_prob / count if count > 0 else 0
 
     def save(self, path: str):
         with open(path, "wb") as f:

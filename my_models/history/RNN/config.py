@@ -6,9 +6,9 @@ MODEL_SAVE_PATH = "../../../models/rnn/rnn_model.pt"
 
 LIMIT = 100_000
 
-if torch.backends.mps.is_available():
-    DEVICE = torch.device("mps")
-elif torch.cuda.is_available():
+# if torch.backends.mps.is_available():
+#     DEVICE = torch.device("mps")
+if torch.cuda.is_available():
     DEVICE = torch.device("cuda")
 else:
     DEVICE = torch.device("cpu")

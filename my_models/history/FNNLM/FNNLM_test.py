@@ -6,11 +6,15 @@ from my_models.history.FNNLM.config import *
 from my_models.history.FNNLM.model.utils import generate_title
 
 
-def load_model_with_dataset():
+def load_model_with_dataset(model_path: None, dataset_path: None):
     """Загрузка модели с информацией о датасете"""
+    if model_path is None:
+        model_path = save_path
+
+    if dataset_path is None:
+        dataset_path = "../../../models/fnnlm/dataset_info.pkl"
 
     try:
-        dataset_path = "../../../models/fnnlm/dataset_info.pkl"
         with open(dataset_path, 'rb') as f:
             dataset_info = pickle.load(f)
 
@@ -23,7 +27,7 @@ def load_model_with_dataset():
 
         model = FNNLM(vocab_size=vocab_size, embedding_dim=EMBEDDING_DIM, hidden_dim=HIDDEN_DIM).to(DEVICE)
 
-        model.load_state_dict(torch.load(save_path, map_location=DEVICE))
+        model.load_state_dict(torch.load(model_path, map_location=DEVICE))
         model.eval()
 
         print("Модель успешно загружена!")

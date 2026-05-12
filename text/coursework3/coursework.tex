@@ -3551,6 +3551,76 @@ return "".join(result_words)
         \item \textbf{Проблема абстрактности:} несмотря на прогресс в структуре, модель всё еще склонна к слишком общим заголовкам. Это обусловлено тем, что при высоком значении потерь (Loss $\approx 7$) модель выбирает наиболее безопасные и часто встречающиеся в корпусе слова-обобщения вместо конкретных деталей из текста.
     \end{enumerate}
 
+    \subsection{Оценка метрик}
+
+    Для количественного анализа качества работы разработанных моделей и их способности
+    генерировать связные заголовки была реализована система автоматической оценки.
+    Процесс тестирования включал вычисление четырех ключевых метрик.
+
+    \begin{enumerate}
+        \item \textbf{Perplexity (PPL)} --- мера того, насколько хорошо модель предсказывает выборку. Она вычисляется как экспонента от средней кросс-энтропии. Низкое значение перплексии свидетельствует о том, что модель более уверенно предсказывает токены из тестового набора данных.
+        \item \textbf{BLEU (BilinguAl Evaluation Understudy)} --- метрика, оценивающая близость сгенерированного текста к эталонному на основе совпадения n-грамм (в данной работе использовалась BLEU-4). Она позволяет оценить точность (precision) генерации.
+        \item \textbf{ROUGE-L (Recall-Oriented Understudy for Gisting Evaluation)} --- метрика, основанная на поиске самой длинной общей подпоследовательности. В отличие от BLEU, ROUGE лучше оценивает полноту (recall) и структуру предложения.
+        \item \textbf{METEOR} --- метрика, учитывающая не только точные совпадения слов, но и их словоформы и синонимы. Считается, что METEOR лучше коррелирует с человеческой оценкой качества текста.
+    \end{enumerate}
+
+    Методика тестирования, реализованная в классе \texttt{ModelEvaluator},
+    предполагает разделение на два этапа.
+    На первом этапе вычисляется перплексия с использованием механизма \texttt{Teacher Forcing},
+    когда на каждом шаге декодеру подается истинный токен из обучающей выборки.
+    На втором этапе выполняется полноценная генерация заголовка для $N$ примеров из
+    валидационной выборки.
+
+    \begin{minted}{text}
+class ModelEvaluator:
+    def __init__(self):
+        self.rouge_evaluator = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'], use_stemmer=True)
+        self.smoothie = SmoothingFunction().method1
+
+    def calculate_perplexity(self, loss_values):
+        avg_loss = np.mean(loss_values)
+        return np.exp(avg_loss)
+
+    def calculate_bleu(self, references, hypotheses):
+        return corpus_bleu(references, hypotheses, weights=(0.25, 0.25, 0.25, 0.25), smoothing_function=self.smoothie)
+
+    def calculate_rouge(self, references, hypotheses):
+        total_rouge_l = 0
+        for ref, hyp in zip(references, hypotheses):
+            scores = self.rouge_evaluator.score(ref, hyp)
+            total_rouge_l += scores['rougeL'].fmeasure
+        return total_rouge_l / len(references) if len(references) > 0 else 0
+
+    def calculate_meteor(self, references, hypotheses):
+        total_meteor = 0
+        for ref, hyp in zip(references, hypotheses):
+            total_meteor += meteor_score(ref, hyp)
+        return total_meteor / len(references) if len(references) > 0 else 0
+    \end{minted}
+    Результаты сравнения всех реализованных архитектур представлены в таблице~\ref{tab:metrics_results}.
+
+    \begin{table}[h!]
+        \centering
+        \caption{Результаты оценки моделей генерации заголовков}
+        \label{tab:metrics_results}
+        \begin{tabular}{|l|c|c|c|c|}
+            \hline
+            \textbf{Модель}          & \textbf{PPL} & \textbf{BLEU-4} & \textbf{ROUGE-L} & \textbf{METEOR} \\ \hline
+            TitleNgramModel (3-gram) & 242801.97    & 0               & 0                & 0               \\ \hline
+            FNNLM                    & 101.78       & 0               & 0                & 0               \\ \hline
+            RNN                      & 39894.95     & 4.95e-05        & 0                & 0.0022          \\ \hline
+            LSTM Bidirectional       & 6.32         & 0               & 0                & 0               \\ \hline
+            Seq2Seq + Attention      & 255.90       & 0.0014          & 0                & 0.0281          \\ \hline
+        \end{tabular}
+    \end{table}
+
+    Анализ полученных данных позволяет сделать следующие выводы:
+    \begin{itemize}
+        \item Модели на основе n-грамм и стандартные рекуррентные сети (RNN) показывают крайне высокую перплексию и практически нулевые значения метрик генерации, что объясняется их неспособностью улавливать долгосрочные зависимости в длинных текстах.
+        \item Модель \textit{LSTM Bidirectional} показала аномально низкое значение PPL (6.32), что может указывать на высокую уверенность модели в предсказании следующего слова в рамках задачи языкового моделирования, однако отсутствие результатов в метриках генерации (BLEU, ROUGE) говорит о сложностях при переходе от предсказания токена к формированию законченной последовательности.
+        \item Наиболее сбалансированные результаты среди представленных архитектур показала модель \textit{Seq2Seq с механизмом внимания}. Несмотря на более высокий PPL по сравнению с LSTM, она единственная продемонстрировала способность генерировать последовательности, имеющие ненулевое сходство с эталоном по метрикам BLEU-4 и METEOR. Это подтверждает эффективность архитектуры энкодер-декодер и механизма внимания для задач абстрактивной суммаризации.
+    \end{itemize}
+
 
     \conclusion
 
@@ -3579,9 +3649,10 @@ return "".join(result_words)
 
 
     \section{Модель на основе n-gram}
-    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/n-gram/n_gram_model.py}
-    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/n-gram/n-gram_train.py}
-    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/n-gram/n-gram_test.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/n_gram/n_gram_model.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/n_gram/n-gram_train.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/n_gram/n-gram_test.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/n_gram/evaluate_ngram.py}
 
 
     \section{Feedforward Neural Network Language Model}
@@ -3591,6 +3662,7 @@ return "".join(result_words)
     \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/FNNLM/config.py}
     \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/FNNLM/FNNLM_main.py}
     \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/FNNLM/FNNLM_test.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/FNNLM/evaluate_fnnlm.py}
 
 
     \section{Рекурентные нейронные сети}
@@ -3600,6 +3672,7 @@ return "".join(result_words)
     \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/RNN/config.py}
     \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/RNN/RNN_main.py}
     \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/RNN/RNN_test.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/RNN/evaluate_rnn.py}
 
 
     \section{LSTM}
@@ -3609,6 +3682,7 @@ return "".join(result_words)
     \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/LSTM/config.py}
     \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/LSTM/LSTM_main.py}
     \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/LSTM/LSTM_test.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/history/LSTM/evaluate_lstm.py}
 
 
     \section{Seq2seq}
@@ -3622,6 +3696,7 @@ return "".join(result_words)
     \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/Seq2seq/config.py}
     \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/Seq2seq/seq2seq_main.py}
     \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/Seq2seq/seq2seq_test.py}
+    \inputminted{py}{/Users/veronika_steklo/PycharmProjects/generation_names/my_models/Seq2seq/evaluate_seq2seq.py}
 
 
 \end{document}
